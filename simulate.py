@@ -3,6 +3,8 @@ import numpy as np
 import scipy.signal as signal
 import matplotlib.pyplot as plt
 import math
+from matplotlib.widgets import TextBox
+from matplotlib.widgets import Button
 
 def trilateracija (tacka1, tacka2, tacka3, r1, r2, r3):
     x1, y1 = tacka1
@@ -28,9 +30,9 @@ def pitagora (tacka, x2, y2):
 def presek (tacka0, r0, tacka1, r1):
     x0, y0 = tacka0
     x1, y1 = tacka1
-    d = math.sqrt((x0-x1)^2 + (y0-y1)^2)
+    d = math.sqrt((x0-x1)**2 + (y0-y1)**2)
     a=(r0**2-r1**2+d**2)/(2*d)
-    h=math.sqrt(r0**2-a**2)
+    h=math.sqrt(abs(r0**2-a**2))
     x2=x0+a*(x1-x0)/d
     y2=y0+a*(y1-y0)/d
     x3=x2+h*(y1-y0)/d
@@ -41,25 +43,26 @@ def presek (tacka0, r0, tacka1, r1):
 
     return (x3, y3, x4, y4)
 
-def bliza (tacka0, tacka1, tackax):
-    x0, y0 = tacka0
-    x1, y1 = tacka1
+def bliza (tacke01, tackax):
+    x0, y0, x1, y1= tacke01
+    # x0, y0 = tacka0
+    # x1, y1 = tacka1
     x, y = tackax
-    d0 = math.sqrt((x0-x)^2 + (y0-y)^2)
-    d1 = math.sqrt((x1-x)^2 + (y1-y)^2)
+    d0 = math.sqrt((x0-x)**2 + (y0-y)**2)
+    d1 = math.sqrt((x1-x)**2 + (y1-y)**2)
     if d1 > d0:
-        return d0
+        return (x0,y0)
     else:
-        return d1
+        return (x1,y1)
 
 def greskaDis (tacka1, tacka2, tacka3, tackax):
     x1, y1 = tacka1
     x2, y2 = tacka2
     x3, y3 = tacka3
     x, y = tackax
-    d1 = math.sqrt((x1-x)^2 + (y1-y)^2)
-    d2 = math.sqrt((x2-x)^2 + (y2-y)^2)
-    d3 = math.sqrt((x3-x)^2 + (y3-y)^2)
+    d1 = math.sqrt((x1-x)**2 + (y1-y)**2)
+    d2 = math.sqrt((x2-x)**2 + (y2-y)**2)
+    d3 = math.sqrt((x3-x)**2 + (y3-y)**2)
     maks = d1
     if d2 > maks:
         maks = d2
@@ -67,124 +70,214 @@ def greskaDis (tacka1, tacka2, tacka3, tackax):
         maks = d3
     return maks
 
-t = np.linspace(0,1,8000)
-sig = signal.chirp(t,170,0.5,250)
-sig[4000::] = np.zeros(4000)
-# plt.plot(t,sig)
-# plt.show()
-zavisnost = np.zeros((100,2))
-eps = 0.005
-node1 = (.0,.0)
-node2 = (.7,.5)
-node3 = (.14,-.2)
+Fs = 8000
+brzina_zvuka = 340
+duzina_snimka_s = 1
+f1 = 170
+f2 = 250
+duzina_signala = 0.5
+duzina_signala_odbirci = int(Fs * duzina_signala)
 
-# lokacija_real = np.zeros((15,2))
-# lokacija = np.zeros((50,2), dtype=(float,2))
-# lokacija = np.zeros(50)
+t = np.linspace(0,1,Fs)
+sig = signal.chirp(t, f1, duzina_signala, f2)
 
-# for i in range(1,100):
-# i = 0
-# for x in range (-3,13):
-#     for y in range(3,1,-1):
-#         i+=1
-        # kasnjenje = float(input("Udaljenost[m/s]:"))
-        # kasnjenje = i/10;
+sig[duzina_signala_odbirci::] = 0 ## prazni ostalu
 
-        # kasnjenje_t = round(kasnjenje/340 * 8000);
-        kasnjenje1 = round(distanca1 / 340 * 8000)
-        kasnjenje2 = round(distanca2 / 340 * 8000)
-        kasnjenje3 = round(distanca3 / 340 * 8000)
+eps = 0.005 ## eksperimentalna vrednost za gresku real world metrike
 
-        sig1 = 0 * t
-        sig2 = 0 * t
-        sig3 = 0 * t
+## A, B, C
+node1 = (.0,.0) ## hardcode, treba da predje u plot
+node2 = (.3,.7) 
+node3 = (.8,.0)
 
-        sig1[kasnjenje1:kasnjenje1 + 4000:] = sig[0:4000:]
-        sig2[kasnjenje2:kasnjenje2 + 4000:] = sig[0:4000:]
-        sig3[kasnjenje3:kasnjenje3 + 4000:] = sig[0:4000:]
-
-
-
-        # sum
-        me, sigma = 0, 0.1
-        summ = np.random.normal(me, sigma, 8000)
-        sig1 += summ
-        summ = np.random.normal(me, sigma, 8000)
-        sig2 += summ
-        summ = np.random.normal(me, sigma, 8000)
-        sig3 += summ
-
-        # fade
-        sig1 = sig1  / (kasnjenje1*kasnjenje1)
-        sig2 = sig2  / (kasnjenje2*kasnjenje2)
-        sig3 = sig3  / (kasnjenje3*kasnjenje3)
-
-
-        # diskretizacija
-        sig1 = (sig1*255).astype(np.int8)
-        sig2 = (sig2*255).astype(np.int8)
-        sig3 = (sig3*255).astype(np.int8)
-
-        # plt.plot(sig22)
-        # plt.show()
-
-        # korelacija
-
-        korelacija1 = signal.correlate(sig1, sig)
-        korelacija2 = signal.correlate(sig2, sig)
-        korelacija3 = signal.correlate(sig3, sig)
-
-        udaljenost1 = (korelacija1.argmax() - 8000) * 1/8000 * 340
-        udaljenost2 = (korelacija2.argmax() - 8000) * 1/8000 * 340
-        udaljenost3 = (korelacija3.argmax() - 8000) * 1/8000 * 340
-
-        print("Greska1:",distanca1 - udaljenost1)
-        print("Greska2:",distanca2 - udaljenost2)
-        print("Greska3:",distanca3 - udaljenost3)
-
-        xloc, yloc = trilateracija(node1,node2, node3, udaljenost1, udaljenost2, udaljenost3)
-        lokacija[i] = pitagora((x,y),xloc,yloc)
-        # lokacija[i,0] = (x,y)
-        # lokacija[i,1] = (xloc, yloc)
-        # zavisnost[i,1] = kasnjenje
-        # zavisnost[i,0] = udaljenost
-        tackax = (xloc, yloc)
-        tacka1 = bliza(presek(node1, udaljenost1+eps, node2, udaljenost2+eps))
-        tacka2 = bliza(presek(node2, udaljenost2+eps, node3, udaljenost3+eps))
-        tacka3 = bliza(presek(node3, udaljenost2+eps, node1, udaljenost1+eps))
-        greska = greskaDis(tacka1, tacka2, tacka3, tackax)
-
-
+# kasnjenje = float(input("Udaljenost[m/s]:"))
 
 ## lepi plotovi eksterno
 figure, axes = plt.subplots()
-
-x,y = 0.7, 0.4
-for cvor in node1, node2, node3:
-    distanca1 = pitagora(node1, x,y)
-    distanca2 = pitagora(node2, x,y)
-    distanca3 = pitagora(node3, x,y )
-
-    cc = plt.Circle(cvor , 0.4, fill=False, linestyle='--', edgecolor='r' ) ## prvo je zapakovane kordinate, udaljenost + eps
-    ac = plt.Circle(cvor, 0.3, fill = False) ## opet prvo zapakovane koordinate pa onda udaljenost koju dobijemo
-    bc = plt.Circle(cvor, 0.001) ## ovo je samo tacka gde se nalazi, postelovati mozda da automatski bude manja
-
-    axes.add_artist( cc ) ## dodajemo krug, epsilon krug i tacku
-    axes.add_artist(bc)
-    axes.add_artist(ac)
-
-    axes.plot(0.5,0.8, marker='x')
-    axes.errorbar(0.5,0.8,xerr = 0.1, yerr = 0.1)
-
-axes.set_aspect( 1 )
-plt.xlim([0,1])
-plt.ylim([0,1])
+figure.subplots_adjust(bottom=0.2)
 plt.title( 'Trilateracija' )
+
+
+x,y = 0.4, 0.3
+def update_plot():
+    global sig
+    udaljenosti=[]
+    distance = []
+    for cvor in node1, node2, node3:
+        distanca = pitagora(cvor, x,y) ## prava distanca bez ikakvih gresaka, idealno
+        kasnjenje = round(distanca / brzina_zvuka * Fs)
+        distance.append(distanca)
+        # kasnjenje1 = round(distanca1 / brzina_zvuka * Fs)
+        # kasnjenje2 = round(distanca2 / brzina_zvuka * Fs)
+        # kasnjenje3 = round(distanca3 / brzina_zvuka * Fs)
+        sig_mod = 0 * t
+        # sig1 = 0 * t
+        # sig2 = 0 * t
+        # sig3 = 0 * t
+
+        sig_mod[kasnjenje:kasnjenje + duzina_signala_odbirci] = sig[0:duzina_signala_odbirci]
+        # sig1[kasnjenje1:kasnjenje1 + 4000:] = sig[0:4000:]
+        # sig2[kasnjenje2:kasnjenje2 + 4000:] = sig[0:4000:]
+        # sig3[kasnjenje3:kasnjenje3 + 4000:] = sig[0:4000:]
+
+        # sum
+        me, sigma = 0, 0.1
+        summ = np.random.normal(me, sigma, Fs * duzina_snimka_s)
+        sig_mod += summ
+        # summ = np.random.normal(me, sigma, Fs)
+        # sig2 += summ
+        # summ = np.random.normal(me, sigma, Fs)
+        # sig3 += summ
+
+        # fade
+        sig_mod = sig_mod  / pow(kasnjenje,2)
+        # sig2 = sig2  / (kasnjenje2*kasnjenje2)
+        # sig3 = sig3  / (kasnjenje3*kasnjenje3)
+        #### !!! diskretizacija trenutno pod pauzom, izgleda pravilo probleme
+        # diskretizacija
+        ### !! korelise se sa original signalom koji je float, mora i on da se diskretizuje
+        sig_mod = (sig_mod * np.iinfo(np.int8).max).astype(np.int8) ## ovde je bila greska, signed 8 bit ide do 127
+        sig_diskret = (sig * np.iinfo(np.int8).max).astype(np.int8) 
+        sig = (sig_diskret / np.iinfo(np.int8).max).astype(np.float16)
+        sig_mod = (sig_mod / np.iinfo(np.int8).max).astype(np.float16) ## ovde je bila greska, signed 8 bit ide do 127
+        
+        # sig_mod = (sig_mod * 127).astype(np.int8)
+        # sig1 = (sig1*255).astype(np.int8)
+        # sig2 = (sig2*255).astype(np.int8)
+        # sig3 = (sig3*255).astype(np.int8)
+
+        # korelacija
+        korelacija = signal.correlate(sig_mod, sig)
+        # plt.plot(korelacija)
+        # plt.show()
+        # korelacija = signal.correlate(sig_mod, sig)
+        # korelacija1 = signal.correlate(sig1, sig)
+        # korelacija2 = signal.correlate(sig2, sig)
+        # korelacija3 = signal.correlate(sig3, sig)
+
+        ## udaljenost 
+        udaljenost = (korelacija.argmax() - 8000) * 1/Fs * brzina_zvuka ## da ne bude 8000 vec da izracuna
+        udaljenosti.append(udaljenost) ## append na listu
+        # print(udaljenost)
+        # udaljenost1 = (korelacija1.argmax() - Fs) * 1/Fs * brzina_zvuka
+        # udaljenost2 = (korelacija2.argmax() - Fs) * 1/Fs * brzina_zvuka
+        # udaljenost3 = (korelacija3.argmax() - Fs) * 1/Fs * brzina_zvuka
+
+
+        # print("Greska1:",distanca1 - udaljenost1)
+        # print("Greska2:",distanca2 - udaljenost2)
+        # print("Greska3:",distanca3 - udaljenost3)
+
+        prava_kruznica = plt.Circle(cvor, distanca, fill = False, edgecolor = 'g') ## real
+
+        cc = plt.Circle(cvor , distanca + eps, fill=False, linestyle='--', edgecolor='y' ) ## prvo je zapakovane kordinate, udaljenost + eps
+        ac = plt.Circle(cvor, udaljenost, fill = False, edgecolor = 'r') ## opet prvo zapakovane koordinate pa onda udaljenost koju dobijemo
+        bc = plt.Circle(cvor, eps) ## ovo je samo tacka gde se nalazi, postelovati mozda da automatski bude manja
+
+        axes.add_artist( cc ) ## dodajemo krug, epsilon krug i tacku
+        axes.add_artist(bc)
+        axes.add_artist(ac)
+        axes.add_artist(prava_kruznica)
+        
+
+    axes.plot(x,y, marker='x') ## pravi x sa errorbar-om
+    axes.errorbar(x,y,xerr = eps, yerr = eps)
+
+    xloc, yloc = trilateracija(node1,node2, node3, udaljenosti[0], udaljenosti[1], udaljenosti[2])
+    # tackax = (xloc, yloc)
+    tackax = (x, y)
+    tacka1 = bliza(presek(node1, distance[0]+eps, node2, distance[1]+eps), (x,y))
+    tacka2 = bliza(presek(node2, distance[1]+eps, node3, distance[2]+eps), (x,y))
+    tacka3 = bliza(presek(node3, distance[2]+eps, node1, distance[0]+eps), (x,y))
+    
+    # tacka1 = bliza(presek(node1, udaljenosti[0]+eps, node2, udaljenosti[1]+eps), (x,y))
+    # tacka2 = bliza(presek(node2, udaljenosti[1]+eps, node3, udaljenosti[2]+eps), (x,y))
+    # tacka3 = bliza(presek(node3, udaljenosti[2]+eps, node1, udaljenosti[0]+eps), (x,y))
+    greska = greskaDis(tacka1, tacka2, tacka3, tackax)
+    print(greska)
+
+    x_plt = plt.Circle(tackax, greska,alpha = 0.5, facecolor = 'r') ## gde je x nadjen
+
+    axes.plot(xloc,yloc, marker='*', color='g') ## nadjeni x 
+    axes.add_artist(x_plt)
+        
+    axes.set_aspect( 1 )
+    axes.set_xlim([-1.5,1.5])
+    axes.set_ylim([-1.5,1.5])
+    plt.draw()
+    # plt.title( 'Trilateracija' )
+    # plt.show()
+    # udaljenost = []
+
+
+def submitx(xnew):
+    global x
+    x = eval(xnew)
+    update_plot()
+
+def submity(ynew):
+    global y
+    y = eval(ynew)
+    update_plot()
+
+def submita(anew):
+    global node1
+    node1 = eval(anew)
+    update_plot()
+
+def submitb(bnew):
+    global node2
+    y = eval(bnew)
+    update_plot()
+
+def submitc(cnew):
+    global node3
+    node3 = eval(cnew)
+    update_plot()
+
+def obrisi(aaaa):
+        axes.clear()
+        update_plot()
+
+#promena vrednosti za X(x,y)
+boxx = figure.add_axes([0.1, 0.05, 0.1, 0.075])
+boxy = figure.add_axes([0.23, 0.05, 0.1, 0.075])
+boxa = figure.add_axes([0.36, 0.05, 0.1, 0.075])
+boxb = figure.add_axes([0.49, 0.05, 0.1, 0.075])
+boxc = figure.add_axes([0.62, 0.05, 0.1, 0.075])
+clear = figure.add_axes([0.75, 0.05, 0.1, 0.075])
+
+text_x = TextBox(boxx, "x:") 
+text_x.on_submit(submitx)
+text_x.set_val(str(x))
+text_y = TextBox(boxy, "y:") 
+text_y.on_submit(submity)
+text_y.set_val(str(y))  
+#
+text_a = TextBox(boxa, "A:") 
+text_a.on_submit(submita)
+# text_a.set_val(str(node1[0]) + ',' + str(node1[1]))
+text_a.set_val(node1)
+
+text_b = TextBox(boxb, "B:") 
+text_b.on_submit(submitb)
+# text_b.set_val(str(node1[0]) + ',' + str(node1[1]))
+text_b.set_val(node2)
+
+text_c = TextBox(boxc, "C:") 
+text_c.on_submit(submitc)
+# text_c.set_val(str(node1[0]) + ',' + str(node1[1])) 
+text_c.set_val(node3) 
+
+bnext = Button(clear, "obrisi:")
+bnext.on_clicked(obrisi)
+
+# plt.xlim([-2.5,2.5])
+# plt.ylim([-2.5,2.5])
 plt.show()
 
 
-
-
+# update_plot()
 
 # plt.plot(lokacija)
 # plt.show()
